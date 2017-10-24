@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Helical Wheel</title>
+		<link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
+		<style>
+			body {
+				font-family: 'Roboto';
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+				box-sizing: border-box;
+			}
+
+			h1 {
+				text-align: center;
+			}
+
+			.chart div {
+				background: slateblue;
+				height: 0;
+				width: 0;
+				padding: 30px;
+				border-radius: 50px;
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translateX(-50%) translateY(-50%);
+				color: #eee;
+				text-align: center;
+			}
+		</style>
+	</head>
+
+	<body>
+		<header>
+			<h1>Helical Wheel</h1>
+
+			Sequence: <input type="text" name="seq" id="seq">
+		</header>
+
+		<div class="chart"><p></p></div>
+
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script>
+			// model will go clockwise, top to bottom of helix
+
+			// store user-inputed peptide sequence in variable
+			// temporary hard-coded sequence
+			//var seq = 'RMKQLEDKVEELLSKNYH';
+
+			document.getElementById('seq').addEventListener('input', function(evt) {
+				var seq = this.value;
+			});
+
+			// turn seq into array, where every char is an element
+			var data = seq.split('');
+
+			// convert radians to degrees
+			function deg(rad) {
+				return rad * (Math.PI / 180);
+			}
+
+			// return margins needed to position residues, based on cos/sin based on array index
+			// multiplied by scale factor; radius = scale
+			function pos(index, scale) {
+				var rad = deg( index*100 );
+
+				var top = Math.sin(rad) * scale;
+				var left = Math.cos(rad) * scale;
+
+				// bottom (negative top) and right (negative left) margin values are 0
+
+				return top + 'px 0 0 ' + left + 'px';
+			}
+
+			// calculate appropriate radius based on viewport width
+			// @param percent is percent of screen the whole wheel's width should take up
+			function radius(percent) {
+				return (document.documentElement.clientWidth * percent/100) / 2;
+			}
+
+			// represent residues as circles on edge of wheel
+			// position of circle depends on element position
+			d3.select('.chart')
+			  .selectAll('div')
+			  	.data(data)
+			  .enter().append('div')
+			  	.style('margin', function(d, i) { return pos(i, radius(70)) })
+			  	.text(function(d, i) { return i; });
+		</script>
+	</body>
+</html>

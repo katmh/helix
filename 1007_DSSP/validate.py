@@ -31,6 +31,14 @@ def generateCSV(dssp, csv):
 	ID = dssp[5:-5]
 	disp = getDisp(ID, 'disparities-n68.txt')
 
+	with open('csv/all-n68.csv', 'w') as output:
+		for i, item in enumerate(ss):
+			if i in range(0, len(ss) - 17):
+				output.write(str(i) + ',' + item + ',' + disp[i] + '\n')
+			else:
+				output.write(str(i) + ',' + item + '\n')
+
+'''
 	with open(csv, 'a') as output:
 		for i, item in enumerate(ss):
 			if i in range(0, len(ss) - 17):
@@ -38,6 +46,7 @@ def generateCSV(dssp, csv):
 				output.write(str(i) + ',' + item + ',' + disp[i] + '\n')
 			else:
 				output.write(str(i) + ',' + item + '\n')
+'''
 
 # get SS code from generated DSSP file (file name is input)
 def getSS(i):
