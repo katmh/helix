@@ -1,6 +1,6 @@
 ---
 title: Amino Acids
-date: 2017-10-24
+date: 2017-10-25
 ---
 
 ## Role in Proteins and Life
@@ -47,5 +47,7 @@ Additionally, they are also all L-stereoisomers, or left-handed isomers.
 ## Classification by Polarity
 
 Aside from the position of their functional groups, amino acids can also be classified by polarity, pH, and side chain type. Polarity is important for this project, so we'll examine that here.
+
+![Classification by polarity and nature of R group. Source: Khan Academy MCAT Prep]({{ '/images/khan-academy-classification.svg' | prepend: site.baseurl }})
 
 ## References
