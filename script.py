@@ -18,29 +18,22 @@ def createDataset(original, domainList, output):
 	with open(original) as originalSet:
 		for i, line in enumerate(originalSet):
 			if i % 2 == 0: # headers
-				allHeaders.append(line)
+				allHeaders.append(line[14:21])
 			if i % 2 == 1:
 				allSeq.append(line[:-1]) # remove newline char
 
-	# check classification of domains (domain IDs are in headers) using domainList
-	outputList = []
-
-	with open(domainList) as domains:
-		for line in domains:
-			for i, head in enumerate(allHeaders):
-				if line[0:7] == head[12:19]: # match IDs
-					if (line[12:13] == '1') or (line[12:13] == '3'):
-						# output file format: ID,seq,class,architecture
-						outputList.append(line[0:7] + ',' + allSeq[i] + ',' + str(line[12]) + ',' + str(line[17:19]))
-
-	# write output file
-	# ID,seq,class,architecture
+	# check classification of domains (domain IDs are in headers) using domainList, then write output file
 
 	with open(output, 'w') as outputFile:
-		for line in outputList:
-			outputFile.write(line + '\n')
+		with open(domainList) as domains:
+			for line in domains:
+				for i, ID in enumerate(allHeaders):
+					if line[0:7] == ID: # match IDs
+						if (line[12:13] == '1') or (line[12:13] == '3'):
+							# output file format: ID,seq,class,architecture
+							outputFile.write(ID + ',' + allSeq[i] + ',' + str(line[12]) + ',' + str(line[17:19]) + '\n')
 
-# createDataset('cath-dataset-nonredundant-S20.fa', 'cath-domain-list-S100-v4_2_0.txt', 'dataset.txt')
+#createDataset('cath-dataset-nonredundant-S40-v4_2_0.fa', 'cath-domain-list-S100-v4_2_0.txt', 'dataset.txt')
 
 # seq: polypeptide sequence in letters
 # size: size of sliding window (e.g. 15 residues)
