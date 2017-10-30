@@ -98,4 +98,53 @@ with open('dataset.txt') as dataset:
 	for line in dataset:
 		IDs.append(line.split(',')[0])
 
-generateDSSP(IDs)
+#generateDSSP(IDs)
+
+# CSV format: header (ID); residueNum,ss,disparity
+# disparity will be empty if it's last 14 residues of sequence
+# ss will be ' ' if DSSP couldn't detect or it has no ss classification
+# output: file path
+def generateCSV(ID):
+	ss = getSS('dssp/' + ID + '.dssp')
+	disp = getDisp(ID, 'disparities.txt')
+
+	with open('csv/' + ID + '.csv', 'w') as outputFile:
+		outputFile.write(ID + '\n')
+
+		for i, value in enumerate(ss):
+			outputFile.write(str(i) + ',' + value)
+			if i in range(0, len(disp)):
+				outputFile.write(',' + str(disp[i]))
+			outputFile.write('\n')
+			
+
+# get SS code from generated DSSP file
+# input: file path
+def getSS(input):
+	secstrucs = []
+
+	with open(input) as DSSP:
+		for i, line in enumerate(DSSP):
+			if i > 27: # skip header
+				secstrucs.append(line[16]) # 1-letter ss code
+
+	return secstrucs
+
+# get disparities from previously generated file
+# disparities: file path to disparities.txt
+def getDisp(ID, disparities):
+	with open(disparities) as disp:
+		for i, line in enumerate(disp):
+			if line[0:7] == ID:
+				return line.split(',')[1:-1]
+
+for ID in IDs:
+	if (ID != '2qe7G01') and (ID != '2qe7G02'):
+		generateCSV(ID)
+
+# compiles data into 2-col table (1st col is ss, 2nd is disp value)
+def SSversusDisp():
+	with open('SSversusDisp.txt', 'w') as outputFile:
+		for file in os.listdir('csv'):
+			for i, line in enumerate(file):
+				outputFile.append(line[2:] + '\n')
