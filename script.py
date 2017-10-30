@@ -98,3 +98,11 @@ def calculateDisparities(input, output):
 def generateDSSP(IDlist):
 	for ID in IDlist:
 		subprocess.call('mkdssp -i dompdb/' + ID + ' -o dssp/' + ID + '.dssp', shell=True)
+
+IDs = []
+
+with open('dataset.txt') as dataset:
+	for line in dataset:
+		IDs.append(line.split(',')[0])
+
+generateDSSP(IDs)
