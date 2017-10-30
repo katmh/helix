@@ -1,4 +1,6 @@
 import math
+import os
+import subprocess
 
 # Create dataset of domains containing alpha helices
 # From cath-dataset-nonredundant-S20.fa, exclude classes B and D (mainly beta, few secondary structures)
@@ -90,3 +92,9 @@ def calculateDisparities(input, output):
 				out.write('\n')
 
 #calculateDisparities('dataset.txt', 'disparities.txt')
+
+# IDlist: list of IDs (not file)
+# Note: need dompdb folder, which is very large (download from CATH)
+def generateDSSP(IDlist):
+	for ID in IDlist:
+		subprocess.call('mkdssp -i dompdb/' + ID + ' -o dssp/' + ID + '.dssp', shell=True)
