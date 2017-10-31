@@ -138,17 +138,21 @@ def getDisp(ID, disparities):
 			if line[0:7] == ID:
 				return line.split(',')[1:-1]
 
+'''
 for i, ID in enumerate(IDs):
 	if (ID != '2qe7G01') and (ID != '2qe7G02'):
 		print(str(i) + ' ' + ID)
 		generateCSV(ID)
+'''
 
-# compiles data into 4-col table: ID,residueNum,ss,disp
-# why ID? maybe compare superfamilies later
+# compiles data into 3-col table: residueNum,ss,disp
+# maybe add ID later to compare across categories
 def SSversusDisp():
 	with open('SSversusDisp.txt', 'w') as outputFile:
 		for file in os.listdir('csv'):
-			for i, line in enumerate(file):
-				if i > 0: # skip header, which is ID
-					outputFile.append(file.readlines()[0] + ',' + line[i])
+			with open('csv/' + file) as csv:
+				for i, line in enumerate(csv.readlines()):
+					if i > 0: # skip header, which is ID
+						outputFile.write(line)
 
+SSversusDisp()
