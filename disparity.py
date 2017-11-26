@@ -1,4 +1,8 @@
 import math
+from matplotlib import rcParams
+rcParams['font.family'] = 'sans-serif'
+rcParams['font.sans-serif'] = ['Arial']
+rcParams['axes.titlepad'] = 10
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -108,9 +112,11 @@ def colorBySS(ID):
 		elif i == len(SSList) - 1: # if last, region extends to the end
 			endRes = len(SSList) - 1
 
-		if pair[1] == 'H':
+		if pair[1] == 'H': # alpha helix
 			# draw vertical span (rect) from xmin to xmax; color-coded by SS
-			plt.axvspan(startRes, endRes, facecolor='g', alpha=0.5)
+			plt.axvspan(startRes, endRes, facecolor='m', alpha=0.4) # magenta
+		if pair[1] == 'E': # beta strand/ladder
+			plt.axvspan(startRes, endRes, facecolor='y', alpha=0.4) # yellow
 
 # parameters: input file (IDs and lists of disparities), output file (PDF of plots, 1 plot per ID)
 def plotDisparities(i, o):
@@ -118,7 +124,7 @@ def plotDisparities(i, o):
 	
 	with open(i) as disp:
 
-		plt.style.use('ggplot')
+		plt.style.use('seaborn')
 
 		for n, line in enumerate(disp):
 			ID = line.split(',')[0]
@@ -129,10 +135,12 @@ def plotDisparities(i, o):
 			colorBySS(ID)
 
 			plt.subplot(111)
-			plt.plot(y)
-			plt.title(ID)
-			plt.ylabel('Average Disparity in Window')
-			plt.xlabel('First Residue in Window')
+			plt.plot(y, c='k', linewidth=1.0)
+			plt.subplots_adjust(left=0.1, right=0.95, top=0.89, bottom=0.14) # coordinate system of the figure; (0,0) is bottom left, (1,1) top right
+
+			plt.title(ID, fontsize=14, fontweight='bold')
+			plt.ylabel('Average Disparity in Window', labelpad=7.5)
+			plt.xlabel('First Residue in Window', labelpad=7.5)
 
 			pdf.savefig(fig)
 
@@ -140,4 +148,4 @@ def plotDisparities(i, o):
 
 	pdf.close()
 
-plotDisparities('disparities.txt', 'disparities.pdf')
+#plotDisparities('disparities.txt', 'disparities-AB-shade.pdf')
