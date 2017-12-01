@@ -149,3 +149,12 @@ def plotDisparities(i, o):
 	pdf.close()
 
 #plotDisparities('disparities.txt', 'disparities-AB-shade.pdf')
+
+# parameters: input file (IDs and lists of disparities), output txt/csv of maxima, output histogram w/ matplotlib
+def maximaDisparities(i, raw):
+	with open(i) as disp:
+		with open(raw, 'w') as txt:
+			for line in disp:
+				txt.write(str(max(line.split(',')[1:-1])) + '\n')
+
+maximaDisparities('disparities.txt', 'maxdisparities.txt')
