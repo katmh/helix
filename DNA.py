@@ -1,28 +1,13 @@
 # input should be template 3' -> 5', output mRNA will be 5' -> 3', which is the direction of translation
-# parameters: input file of DNA w/ header
-def transcribe(i):
-	DNAseq = ''
-
-	with open(i) as DNA:
-		for i, line in enumerate(DNA):
-			# skip header
-			if i != 0:
-				DNAseq += line[:-1] # don't include newline char
-
+def transcribe(DNA):
 	dnaRna = {'C': 'G', 'G': 'C', 'A': 'U', 'T': 'A'}
-
 	RNA = ''
-
-	for char in DNAseq:
+	for char in DNA:
 		RNA += dnaRna[char]
-
 	return RNA
 
-#print(translate('TCGTA'))
-
-# parameter: input transcript (nucleotide FASTA w/ header)
+# input is mRNA 5' -> 3'
 def translate(transcript):
-	# one-letter amino acids
 	codons = {
 		# U
 		'UUU': 'F',
@@ -110,14 +95,21 @@ def translate(transcript):
 	}
 
 	# amino acid sequence to be returned
-	aaSeq = []
-
-	# split RNA into codons and find corresponding amino acid
+	aaSeq = ''
 	for i, base in enumerate(transcript):
 		if i % 3 == 0 and i < len(transcript) - 2: # let base at i be the start of codon; cannot be last 2 bases
-			print(i)
-			aaSeq.append( codons[base + transcript[i+1] + transcript[i+2]] )
-
+			aaSeq += codons[base + transcript[i+1] + transcript[i+2]] # match codon
 	return aaSeq
 
-print(translate(transcribe('DPYD-transcript-variant-1.txt')))
+#print(translate(transcribe('DPYD-transcript-variant-1.txt')))
+
+with open('NONCODE2016_human_clean_every20.txt') as f:
+	with open('seq_NONCODE.csv', 'w') as out:
+		lines = f.readlines()
+		for i, line in enumerate(lines):
+			if line.startswith('>'):
+				out.write(line[1:-1] + ',')
+				print('line ' + str(i) + ' written to output')
+
+				out.write( translate( transcribe( lines[i+1].rstrip('\n').upper() ) ) + '\n' )
+				print('line ' + str(i+1) + ' transcribed, translated, and written')
