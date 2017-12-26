@@ -21,3 +21,4 @@ def every20(i, o):
 					out.write(lines[i] + lines[i+1])
 
 #every20('NONCODE2016_human_clean.txt', 'NONCODE2016_human_clean_every20.txt')
+
