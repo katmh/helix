@@ -1,3 +1,0 @@
-disp_NONCODE.txt filter=lfs diff=lfs merge=lfs -text
-NONCODE2016_human_clean.txt filter=lfs diff=lfs merge=lfs -text
-NONCODE2016_human.fa filter=lfs diff=lfs merge=lfs -text
