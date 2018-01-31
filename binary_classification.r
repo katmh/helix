@@ -7,71 +7,45 @@ mart = useMart(biomart = 'ensembl', dataset = 'hsapiens_gene_ensembl')
 IDs <- read.csv('mart_export.csv')
 # subset with gene type == 'protein_coding'
 IDs <- IDs[IDs$Gene.type == 'protein_coding', ] # end up with 160,705 IDs
-
 geneIDs <- IDs$Gene.stable.ID
 
-# get individual exons
+# get individual exons: 523,351 observations
 exons <- biomaRt::getSequence(id = geneIDs,
                               type = 'ensembl_gene_id',
                               seqType = 'gene_exon',
                               mart = mart)
-colnames(exons) <- c('exon', 'geneID')
+exons$type <- 'exon'
+colnames(exons) <- c('seq', 'geneID', 'type')
 write.csv(exons, 'data_exons.csv')
+#read.csv('data_exons.csv')
 
-# get un-separated sequences of introns and exons
+# get un-separated sequences of introns and exons: 22,650 observations
 exons_introns <- biomaRt::getSequence(id = geneIDs,
                                       type = 'ensembl_gene_id',
                                       seqType = 'gene_exon_intron',
                                       mart = mart) # 5' to 3'
 colnames(exons_introns) <- c('exon_intron', 'geneID')
-write.csv(exons, 'data_exons_introns.csv')
+write.csv(exons_introns, 'data_exons-introns.csv')
+#read.csv('data_exons_introns.csv')
 
-# match exons to exons_introns and replace with \n to be used as divider
-sep_introns <- data.frame('', c('', ''))
+# match exons to exons_introns, replace exons with \n to be used as divider
 for (exon in exons$exons) {
   for (i in 1:length(exons_introns$exon_intron)) {
-    sep_introns[[i]] <- gsub(
+    exons_introns[[1]][i] <- gsub(
       pattern = exon,
-      replacement = '\n',
+      replacement = ' ',
       x = exons_introns$exon_intron[i]
     )
   }
 }
 
-seq <- gsub(
-  pattern = exon,
-  replacement = '\n',
-  x = seq
-)
+introns_vec <- as.vector(strsplit(exons_introns$exon_intron, ' '))
+introns_df <- as.data.frame(as.matrix(unlist(introns_vec)))
+introns_df$type <- 'intron'
+colnames(introns_df) <- c('seq', 'type')
+write.csv(introns_df, 'data_introns.csv')
 
-exons_introns$gene_exon_intron <- gsub(pattern = exons$gene_exon[1], replacement = '\n', x = exons_introns$gene_exon_intron)
-
-introns <- as.vector(strsplit(exons_introns$gene_exon_intron, '\n'))
-
-fake_ie <- c('abcdefg', 'abcgfedc')
-fake_e <- c('abc', 'fe')
-
-(fake_ie[1] <- gsub(
-  pattern = fake_e[1],
-  replacement = ' ',
-  x = fake_ie[1]
-))
-
-# beware of variable scope
-new_seq <- data.frame('')
-for (exon in fake_e) {
-  for (i in 1:length(fake_ie)) {
-    (new_seq[[i]] <- gsub(
-      pattern = exon,
-      replacement = ' ',
-      x = fake_ie[i]
-    ))
-  }
-}
-
-new_seq
-
-fake_ie
-
-str1 = 'text\nmoretext'
-strsplit(str1, '\n')
+# combined dataset
+exons_df <- subset(exons, select=-geneID)
+data <- rbind(introns_df, exons_df)
+write.csv(data, 'data.csv')
