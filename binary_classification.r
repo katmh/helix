@@ -1,7 +1,8 @@
 # load package to access Ensembl
 library(biomaRt)
-
 mart = useMart(biomart = 'ensembl', dataset = 'hsapiens_gene_ensembl')
+
+### DATASET
 
 # list of gene IDs
 IDs <- read.csv('mart_export.csv')
@@ -16,7 +17,7 @@ exons <- biomaRt::getSequence(id = geneIDs,
                               mart = mart)
 exons$type <- 'exon'
 colnames(exons) <- c('seq', 'geneID', 'type')
-write.csv(exons, 'data_exons.csv')
+#write.csv(exons, 'data_exons.csv')
 #read.csv('data_exons.csv')
 
 # get un-separated sequences of introns and exons: 22,650 observations
@@ -25,7 +26,7 @@ exons_introns <- biomaRt::getSequence(id = geneIDs,
                                       seqType = 'gene_exon_intron',
                                       mart = mart) # 5' to 3'
 colnames(exons_introns) <- c('exon_intron', 'geneID')
-write.csv(exons_introns, 'data_exons-introns.csv')
+#write.csv(exons_introns, 'data_exons-introns.csv')
 #read.csv('data_exons_introns.csv')
 
 # match exons to exons_introns, replace exons with \n to be used as divider
@@ -43,9 +44,19 @@ introns_vec <- as.vector(strsplit(exons_introns$exon_intron, ' '))
 introns_df <- as.data.frame(as.matrix(unlist(introns_vec)))
 introns_df$type <- 'intron'
 colnames(introns_df) <- c('seq', 'type')
-write.csv(introns_df, 'data_introns.csv')
+#write.csv(introns_df, 'data_introns.csv')
 
 # combined dataset
 exons_df <- subset(exons, select=-geneID)
 data <- rbind(introns_df, exons_df)
-write.csv(data, 'data.csv')
+data$gc <- 0
+data$seq <- as.character(data$seq)
+#write.csv(data, 'data.csv')
+
+### FEATURE EXTRACTION
+
+# GC content
+for (i in 1:length(data$seq)) {
+  ratio <- stringr::str_count(data$seq[i], 'G|C') / nchar(data$seq[i]) * 100
+  data$gc[i] <- ratio
+}
