@@ -51,7 +51,6 @@ exons_df <- subset(exons, select=-geneID)
 data <- rbind(introns_df, exons_df)
 data$gc <- 0
 data$seq <- as.character(data$seq)
-#write.csv(data, 'data.csv')
 
 ### FEATURE EXTRACTION
 
@@ -60,3 +59,27 @@ for (i in 1:length(data$seq)) {
   ratio <- stringr::str_count(data$seq[i], 'G|C') / nchar(data$seq[i]) * 100
   data$gc[i] <- ratio
 }
+write.csv(data, 'data.csv')
+
+mean(data$gc[data$type=='exon']) # 52.44306
+mean(data$gc[data$type=='intron']) # 47.10053
+
+# average disparity later?
+
+### LINEAR REGRESSION
+histogram(data$gc)
+
+### CLASSIFICATION
+
+set.seed(1)
+
+# create 60/40 split
+rows <- sample(nrow(data)) # shuffle row indices
+data_shuffled <- data[rows, ] # randomly reorder rows
+split <- round(nrow(data) * .6)
+data_train <- data_shuffled[1:split, ]
+data_test <- data_shuffled[(split+1):nrow(data), ]
+
+# fit logistic regression model
+model <- lm()
+p <- predict(model, data_test)
