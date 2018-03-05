@@ -33,7 +33,7 @@ coding <- coding[coding$length < 50000, ] # removes 1 outlier (length>100000)
 noncoding <- noncoding[noncoding$length >= 45, ] # removes 9 sequences
 
 # make datasets the same size by randomly choosing sequences from bigger dataset
-fraction = nrow(coding) / nrow(noncoding)
+fraction <- nrow(coding) / nrow(noncoding)
 nc_index <- sample(x = 1:nrow(noncoding), size = round(fraction * nrow(noncoding)))
 noncoding <- noncoding[nc_index, ]
 
@@ -65,7 +65,7 @@ ggplot(data=data, aes(data$disp, fill=code)) + geom_histogram(binwidth = .05) + 
 ggplot(data=data, aes(data$GC, fill=code)) + geom_histogram(binwidth = 1.15) + labs(title='Histogram of GC Percentage', x='GC Percentage', y='Count') + scale_fill_discrete(name = '', labels = c('Noncoding', 'Coding'))
 
 # visualize correlations btwn/among features
-ggplot(data=data, aes(x=data$GC, y=data$disp)) + geom_point(aes(GC, disp, color=code))
+ggplot(data=data, aes(x=data$GC, y=data$disp)) + geom_point(aes(GC, disp, color=code)) + labs(title='Scatterplot of GC Percentage vs Median Disparity')
 
 ### LOGISTIC REGRESSION
 
@@ -101,7 +101,7 @@ plot(spec, add=TRUE, col='blue')
 ### FEATURE SELECTION
 
 # remove redundant features
-(correlationMatrix <- cor(data[,5:6]))
+(correlationMatrix <- cor(data[,4:5]))
 (highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5))
 # disp and GC have .125 correlation
 
