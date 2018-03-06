@@ -3,12 +3,18 @@ library(caret)
 library(ROCR)
 library(plotROC)
 library(ggplot2)
+library(plotly)
 
 # quick start
 setwd('C:/Users/Jan_Huang/Desktop/helix_grindtime/by_secondary_structure')
 data <- read.csv('data.csv')
 data <- subset(data, select=c('seq', 'length', 'code', 'disp', 'GC'))
 data$code <- as.factor(data$code)
+
+# get sequences for beta, ab, and fewSS
+b <- read.csv('beta_coding.csv')
+ab <- read.csv('ab_coding.csv')
+fSS <- read.csv('fewSS_coding.csv')
 
 # make results reproducible
 set.seed(500)
@@ -58,14 +64,96 @@ for (i in 1:nrow(GC)) {
 }
 write.csv(data, 'data.csv')
 
+b_disp <- as.matrix(read.csv('beta_coding_disp.csv'))
+for (i in 1:nrow(b_disp)) {
+  b$disp[i] <- b_disp[i]
+}
+b_GC <- as.matrix(read.csv('beta_coding_GC.csv'))
+for (i in 1:nrow(b_GC)) {
+  b$GC[i] <- b_GC[i]
+}
+
+ab_disp <- as.matrix(read.csv('ab_coding_disp.csv'))
+for (i in 1:nrow(ab_disp)) {
+  ab$disp[i] <- ab_disp[i]
+}
+ab_GC <- as.matrix(read.csv('ab_coding_GC.csv'))
+for (i in 1:nrow(ab_GC)) {
+  ab$GC[i] <- ab_GC[i]
+}
+
+fSS_disp <- as.matrix(read.csv('fewSS_coding_disp.csv'))
+for (i in 1:nrow(fSS_disp)) {
+  fSS$disp[i] <- fSS_disp[i]
+}
+fSS_GC <- as.matrix(read.csv('fewSS_coding_GC.csv'))
+for (i in 1:nrow(fSS_GC)) {
+  fSS$GC[i] <- fSS_GC[i]
+}
+
+b$ss <- 'b'
+ab$ss <- 'ab'
+fSS$ss <- 'fSS'
+data$ss <- ''
+data[data$code==1,]$ss <- 'a'
+
+data_other_ss <- rbind(b,ab,fSS)
+for (i in 1:nrow(data_other_ss)) {
+  data_other_ss$length[i] <- nchar(as.character(data_other_ss$seq[i]))
+}
+data_other_ss$code <- 1
+write.csv(data_other_ss, 'data_other_ss.csv')
+
+data <- rbind(data, data_other_ss)
+
+ORF_lengths <- as.matrix(read.csv('data_ORF.csv'))
+for (i in 1:nrow(data)) {
+  data$maxORF[i] <- ORF_lengths[i]
+}
+
 ### DESCRIPTIVE STATISTICS FOR FEATURES 
+
+mean(data[data$code == '1', ]$GC) # 51.86%
+mean(data[data$code == '0', ]$GC) # 46.49%
+sd(data[data$code == '1', ]$GC) # 7.93%
+sd(data[data$code == '0', ]$GC) # 12.02%
+
+mean(data[data$code == '1', ]$disp) # .73
+mean(data[data$code == '0', ]$disp) # .61
+sd(data[data$code == '1', ]$disp) # .11
+sd(data[data$code == '0', ]$disp) # .13
+
+mean(data[data$code == '1', ]$maxORF) # 439.11
+mean(data[data$code == '0', ]$maxORF) # 221.08
+sd(data[data$code == '1', ]$maxORF) # 394.13
+sd(data[data$code == '0', ]$maxORF) # 230.42
+
+shapiro.test(data[data$code=='1',]$GC) # not normal; p=1.028e-07
+shapiro.test(data[data$code=='0',]$GC) # not normal; p=6.503e-05
+shapiro.test(data[data$code=='1',]$disp) # not normal; p=2.241e-07
+shapiro.test(data[data$code=='0',]$disp) # not normal; p=2.2e-16
+# conclusion: none are normal
+
+fligner.test(data[data$code=='1',]$GC, data[data$code=='0',]$GC) # p=.405, variances are same
+fligner.test(data[data$code=='1',]$disp, data[data$code=='0',]$disp) # p=.492, variances are same
+# conclusion: variances are same
+
+# Wilcoxon Rank Sum Test (compare mean of 2 samples)
+# alternative: true location shift is not equal to 0
+wilcox.test(data[data$code=='1',]$GC, data[data$code=='0',]$GC) # p=9.46e-14
+wilcox.test(data[data$code=='1',]$disp, data[data$code=='0',]$disp) # p=2.2e-16
+# conclusion: from diff distributions
 
 ggplot(data=data, aes(data$disp, fill=code)) + geom_histogram(binwidth = .05) + labs(title='Histogram of Median Disparity', x='Median Disparity', y='Count') + scale_fill_discrete(name = '', labels = c('Noncoding', 'Coding'))
 
 ggplot(data=data, aes(data$GC, fill=code)) + geom_histogram(binwidth = 1.15) + labs(title='Histogram of GC Percentage', x='GC Percentage', y='Count') + scale_fill_discrete(name = '', labels = c('Noncoding', 'Coding'))
 
+ggplot(data=data, aes(data$maxORF, fill=code)) + geom_histogram() + labs(title='Histogram of Max ORF Length', x='Max ORF Length', y='Count') + scale_fill_discrete(name = '', labels = c('Noncoding', 'Coding'))
+
 # visualize correlations btwn/among features
 ggplot(data=data, aes(x=data$GC, y=data$disp)) + geom_point(aes(GC, disp, color=code)) + labs(title='Scatterplot of GC Percentage vs Median Disparity')
+
+ggplot(data=data, aes(x=data$maxORF, y=data$disp)) + geom_point(aes(GC, disp, color=code)) + labs(title='Scatterplot')
 
 ### LOGISTIC REGRESSION
 

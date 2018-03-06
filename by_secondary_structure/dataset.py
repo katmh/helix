@@ -6,6 +6,17 @@ from Bio.SeqUtils import GC
 import math
 import statistics
 
+def getPDBIDs(i, o):
+	with open(i) as f:
+		with open(o, 'w') as out:
+			for i, line in enumerate(f):
+				if i != 0:
+					out.write(line.split(',')[0].strip('"') + '\n')
+
+#getPDBIDs('beta_proteins_PDB_info.csv', 'beta_proteins_IDs.list')
+#getPDBIDs('ab_proteins_PDB_info.csv', 'ab_proteins_IDs.list')
+#getPDBIDs('fewSS_proteins_PDB_info.csv', 'fewSS_proteins_IDs.list')
+
 # UniProt IDs mapped to multiple RefSeq IDs; I only want 1 RefSeq ID per UniProt ID
 def removeDuplicateIDs(i, o):
 	with open(i) as f:
@@ -27,16 +38,24 @@ def download(i,o):
 				handle = Entrez.efetch(db='nucleotide', id=line[:-1], rettype='gb', retmode='text')
 				record = SeqIO.read(handle, 'genbank')
 
-				CDS = [f for f in record.features if f.type == 'CDS'][0]
-				
-				# out.write(line[:-1] + ',') # write ID
-				
-				CDS_left_limit = int(str(CDS.location).split(':')[0].lstrip('['))
-				CDS_right_limit = int(str(CDS.location).split(':')[1].split(']')[0])
-				
-				out.write(str(record.seq[CDS_left_limit : CDS_right_limit]) + '\n')
+				CDSs = [f for f in record.features if f.type == 'CDS']
+
+				for i, CDS in enumerate(CDSs):
+					# out.write(line[:-1] + ',') # write ID
+					if i == 0:
+						CDS_left_limit = str(CDS.location).split(':')[0].lstrip('[')
+						if len(CDS_left_limit.split('[')) > 1:
+							CDS_left_limit = int(CDS_left_limit.split('[')[1])
+						else:
+							CDS_left_limit = int(CDS_left_limit)
+						CDS_right_limit = int(str(CDS.location).split(':')[1].split(']')[0])
+						
+						out.write(str(record.seq[CDS_left_limit : CDS_right_limit]) + '\n')
 
 #download('alpha_refseq_IDs.list', 'coding_final.csv')
+#download('beta_refseq_IDs.list', 'beta_coding.csv')
+#download('ab_refseq_IDs.list', 'ab_coding.csv')
+#download('fewSS_refseq_IDs.list', 'fewSS_coding.csv')
 
 ''' FEATURES '''
 
@@ -85,47 +104,22 @@ def disp(seq):
 
 	return statistics.median(disparities)
 
-# exons are denoted 1 (positive example), introns 0 (negative)
-
-def makeDataset():
-	with open('dataset_disp.csv', 'w') as out:
-		out.write('seq,ie,gc,nstart,maxnstop,maxdisp\n')
-		with open('exons_final.txt') as f:
-			for line in f:
-				# I/E label
-				out.write(line[:-1] + ',1,')
-
-				# GC
-				my_seq = Seq(line[:-1], IUPAC.unambiguous_dna)
-				out.write(str(GC(my_seq)) + ',')
-
-				# N_ATG (start codon)
-				out.write(str(my_seq.count_overlap('ATG')) + ',')
-
-				# max(N_TAA, N_TAG, N_TGA) (stop codons)
-				out.write(str( max( my_seq.count_overlap('TAA'), my_seq.count_overlap('TAG'), my_seq.count_overlap('TGA') ) ) + ',')
-
-				# max disparity in translation of default frame
-				#out.write( str(max(disp(trans(my_seq), 15))) + '\n')
-		with open('introns_final.txt') as f:
-			for line in f:
-				# I/E label
-				out.write(line[:-1] + ',0,')
-
-				# GC
-				my_seq = Seq(line, IUPAC.unambiguous_dna)
-				out.write(str(GC(my_seq)) + ',')
-
-				# N_ATG (start codon)
-				out.write(str(my_seq.count_overlap('ATG')) + ',')
-
-				# max(N_TAA, N_TAG, N_TGA) (stop codons)
-				out.write(str( max( my_seq.count_overlap('TAA'), my_seq.count_overlap('TAG'), my_seq.count_overlap('TGA') ) ) + ',')
-
-				# max disparity in translation of default frame
-				#out.write( str(max(disp(trans(my_seq), 15))) + '\n')
-
-#makeDataset()
+def maxORF(seq):
+	ORF_lengths = []
+	for i, base in enumerate(str(seq)): # input was Seq object
+		if i < len(seq) - 2:
+			if seq[i] + seq[i+1] + seq[i+2] == 'ATG':
+				stop_indices = []
+				stop_codons = ['TAA', 'TAG', 'TGA']
+				for codon in stop_codons:
+					stop_indices.append(seq.find(codon, i+3))
+				for index in stop_indices:
+					if (i % 3 == index % 3) and (index != -1):
+						ORF_lengths.append((index+3)-i)
+	if len(ORF_lengths) > 0:
+		return max(ORF_lengths)
+	else:
+		return 0
 
 def extractFeature(i, o, feature):
 	with open(i) as f:
@@ -135,4 +129,12 @@ def extractFeature(i, o, feature):
 					out.write(str(feature(Seq(line.split(',')[1].strip('"')))) + '\n')
 
 #extractFeature('data.csv', 'data_disp.csv', disp)
-extractFeature('data.csv', 'data_GC.csv', GC)
+#extractFeature('beta_coding.csv', 'beta_coding_disp.csv', disp)
+#extractFeature('ab_coding.csv', 'ab_coding_disp.csv', disp)
+#extractFeature('fewSS_coding.csv', 'fewSS_coding_disp.csv', disp)
+#extractFeature('data.csv', 'data_GC.csv', GC)
+#extractFeature('beta_coding.csv', 'beta_coding_GC.csv', GC)
+#extractFeature('ab_coding.csv', 'ab_coding_GC.csv', GC)
+#extractFeature('fewSS_coding.csv', 'fewSS_coding_GC.csv', GC)
+
+extractFeature('data.csv', 'data_ORF.csv', maxORF)
