@@ -37,6 +37,9 @@ def thousand(inp,o,n):
 
 # then manually shave off the ends of each so there are 1000 entries
 
+# need >6294 introns
+#thousand('introns_gbIDs_noC.txt', 'introns_gb_6294.txt', 8)
+
 def download(i,o):
 	IDs = []
 	positions = []
@@ -59,6 +62,7 @@ def download(i,o):
 
 #download('exons_gb_1000.txt', 'exons_final.txt')
 #download('introns_gb_1000.txt', 'introns_final.txt')
+download('introns_gb_6294.txt', 'introns_final_6492.txt')
 
 # custom translate function to deal w/ non-multiples of 3
 def trans(seq):

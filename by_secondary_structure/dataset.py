@@ -5,17 +5,22 @@ from Bio.Alphabet import IUPAC
 from Bio.SeqUtils import GC
 import math
 import statistics
+import itertools
 
 def getPDBIDs(i, o):
+	print('extracting IDs from PDB info file ' + i + ' into ' + o)
 	with open(i) as f:
 		with open(o, 'w') as out:
 			for i, line in enumerate(f):
 				if i != 0:
 					out.write(line.split(',')[0].strip('"') + '\n')
 
+#getPDBIDs('alpha_proteins_PDB_info.csv', 'alpha_proteins_IDs.list')
+
 #getPDBIDs('beta_proteins_PDB_info.csv', 'beta_proteins_IDs.list')
 #getPDBIDs('ab_proteins_PDB_info.csv', 'ab_proteins_IDs.list')
 #getPDBIDs('fewSS_proteins_PDB_info.csv', 'fewSS_proteins_IDs.list')
+#getPDBIDs('beta_test.csv', 'beta_test_protein_IDs.list') # test with 30% seq identityn
 
 # UniProt IDs mapped to multiple RefSeq IDs; I only want 1 RefSeq ID per UniProt ID
 def removeDuplicateIDs(i, o):
@@ -30,32 +35,53 @@ def removeDuplicateIDs(i, o):
 #removeDuplicateIDs('alpha_uniprot_and_refseq_IDs.list', 'alpha_refseq_IDs.list')
 
 def download(i,o):
+	print('downloading ' + i + ' into ' + o)
 	Entrez.email = 'katherine_huang@student.uml.edu'
 
 	with open(i) as f:
 		with open(o, 'w') as out:
-			for line in f:
+			for n, line in enumerate(f):
+				print(str(i) + ': line ' + str(n))
 				handle = Entrez.efetch(db='nucleotide', id=line[:-1], rettype='gb', retmode='text')
 				record = SeqIO.read(handle, 'genbank')
 
 				CDSs = [f for f in record.features if f.type == 'CDS']
 
-				for i, CDS in enumerate(CDSs):
+				for j, CDS in enumerate(CDSs):
 					# out.write(line[:-1] + ',') # write ID
-					if i == 0:
+					if j == 0:
 						CDS_left_limit = str(CDS.location).split(':')[0].lstrip('[')
 						if len(CDS_left_limit.split('[')) > 1:
 							CDS_left_limit = int(CDS_left_limit.split('[')[1])
+						if len(str(CDS_left_limit).split('<')) > 1:
+							CDS_left_limit = int(CDS_left_limit.split('<')[1])
 						else:
 							CDS_left_limit = int(CDS_left_limit)
 						CDS_right_limit = int(str(CDS.location).split(':')[1].split(']')[0])
 						
 						out.write(str(record.seq[CDS_left_limit : CDS_right_limit]) + '\n')
 
-#download('alpha_refseq_IDs.list', 'coding_final.csv')
+#download('alpha_refseq_IDs.list', 'alpha_coding.csv')
 #download('beta_refseq_IDs.list', 'beta_coding.csv')
 #download('ab_refseq_IDs.list', 'ab_coding.csv')
 #download('fewSS_refseq_IDs.list', 'fewSS_coding.csv')
+
+''' FILTERING '''
+# filter out sequences that are >50000bp or <45 bp
+# filter out sequences with 'N' bases
+def filter(i, o):
+	with open(i) as f:
+		with open(o, 'w') as out:
+			print('filtering ' + i + ' for length (must be <50000bp oand >45bp) and repeats (remove sequences with "N"')
+			for line in f:
+				# check length, skip newline char
+				if len(line[:-1]) < 50000 and len(line[:-1]) > 45 and 'N' not in line[:-1]:
+					out.write(line)
+
+#filter('alpha_coding.csv', 'alpha_coding_filtered.csv')
+#filter('beta_coding.csv', 'beta_coding_filtered.csv')
+#filter('ab_coding.csv', 'ab_coding_filtered.csv')
+#filter('fewSS_coding.csv', 'fewSS_coding_filtered.csv')
 
 ''' FEATURES '''
 
@@ -120,7 +146,12 @@ def maxORF(seq):
 		return max(ORF_lengths)
 	else:
 		return 0
+'''
+def hex(seq):
+	bases = ['A', 'T', 'C', 'G']
+	hexamers_list = list(itertools.product(bases, repeat=6))
 
+'''
 def extractFeature(i, o, feature):
 	with open(i) as f:
 		with open(o, 'w') as out:
@@ -137,4 +168,4 @@ def extractFeature(i, o, feature):
 #extractFeature('ab_coding.csv', 'ab_coding_GC.csv', GC)
 #extractFeature('fewSS_coding.csv', 'fewSS_coding_GC.csv', GC)
 
-extractFeature('data.csv', 'data_ORF.csv', maxORF)
+#extractFeature('data.csv', 'data_ORF.csv', maxORF)

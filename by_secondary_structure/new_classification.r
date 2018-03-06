@@ -5,10 +5,27 @@ library(plotROC)
 library(ggplot2)
 library(plotly)
 
+### CLEAN
+
+a <- read.csv('alpha_coding_filtered.csv', header=FALSE)
+b <- read.csv('beta_coding_filtered.csv', header=FALSE)
+ab <- read.csv('ab_coding_filtered.csv', header=FALSE)
+fSS <- read.csv('fewSS_coding_filtered.csv', header=FALSE)
+
+a$ss <- 'a'
+b$ss <- 'b'
+ab$ss <- 'ab'
+fSS$ss <- 'fSS'
+
+data <- rbind(a,b,ab,fSS)
+data$code <- 1
+colnames(data) <- c('seq', 'ss', 'code')
+write.csv(data, 'data.csv')
+
 # quick start
 setwd('C:/Users/Jan_Huang/Desktop/helix_grindtime/by_secondary_structure')
 data <- read.csv('data.csv')
-data <- subset(data, select=c('seq', 'length', 'code', 'disp', 'GC'))
+data <- subset(data, select=c('seq', 'length', 'code', 'disp', 'GC', 'ss', 'maxORF'))
 data$code <- as.factor(data$code)
 
 # get sequences for beta, ab, and fewSS
@@ -164,12 +181,25 @@ test <- data[-index,] # rows that train didn't include; 495 observations
 
 # 10-fold cross validation
 
-# train model
+# train model on GC + disp
 model <- glm(code ~ GC + disp, family = 'binomial', train)
 p <- predict(model, test, type='response')
 summary(p)
 #      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
 # 0.0003895 0.3029141 0.4716623 0.4928045 0.6545059 0.9922203
+p_class <- ifelse(p > .50, 1, 0)
+confusionMatrix(p_class, test[['code']])
+# accuracy: 75.08%
+# 95% CI: (69.9%, 79.8%)
+# sens: 76.51%
+# spec: %73.47
+
+# train model on GC, disp, and maxORF
+model <- glm(code ~ GC + disp + maxORF, family = 'binomial', train)
+p <- predict(model, test, type='response')
+summary(p)
+#    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+#0.006836 0.899453 0.954246 0.915833 0.982934 1.000000
 p_class <- ifelse(p > .50, 1, 0)
 confusionMatrix(p_class, test[['code']])
 # accuracy: 75.08%
