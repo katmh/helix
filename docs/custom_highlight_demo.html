@@ -1,0 +1,57 @@
+<!DOCTYPE PUBLIC>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>Highlight Characters</title>
+		<style>
+			*					{ margin: 0; padding: 0; }
+			body				{ font: 16px/2 Georgia, serif; }
+			p                   { color: #666;}
+			.selected           { background: #bdf8ff; color: black; }
+			#result             { width: 100%; padding: 3px; margin: 10px 0; }
+		</style>
+		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
+		<script>
+			$(function() {
+				var theText = $("#theText");
+				var theString = theText.text();
+				var numCharacters = theString.length;
+				var newHTML = "";
+				
+				for (i = 0; i <= numCharacters; i++) {
+					var newHTML = newHTML + "<span>" + theString[i] + "</span>";
+				}
+				
+				theText.html(newHTML);
+				
+				$("span").click(function(){
+					$("span").removeClass("selected");
+					$(this).addClass("selected");
+					
+					var nextSpan = $(this);
+					
+					for (i = 1; i <= 15; i++) {
+						nextSpan = nextSpan.next();
+						nextSpan.addClass("selected");
+					}
+					
+					$("#result").data("result", "");
+							
+					$(".selected").each(function() {
+						var oldResults = $("#result").data("result");
+						var newResults = oldResults + $(this).text();
+						$("#result").data("result", newResults);
+					});
+					
+					$("#result").val($("#result").data("result"));
+				});
+			});
+		</script>
+	</head>
+
+	<body>	
+		<p id="theText">ATGGCTGCAGCTTCATATGATCAGTTGTTAAAGC</p>
+			
+		<textarea id="result"></textarea>
+	</body>
+</html>

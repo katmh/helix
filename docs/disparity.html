@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Disparity</title>
+		<style>
+			p {
+				font: 2rem Courier New, monospace;
+				letter-spacing: 5px;
+			}
+
+			* { margin: 0; padding: 0; }
+
+			body { font: 16px/2 Georgia, serif; }
+
+			p { color: #666;}
+
+			.selected { background: #bdf8ff; color: black; }
+
+			#result { width: 100%; padding: 3px; margin: 10px 0; }
+		</style>
+	</head>
+
+	<body>
+		<p id="theText">ATGGCTGCAGCTTCATATGATCAGTTGTTAAAGCAA</p>
+
+		<textarea id="result"></textarea>
+
+		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
+		<script>
+			$(function() {
+				var theText = $("#theText");
+				var theString = theText.text();
+				var numCharacters = theString.length;
+				var newHTML = "";
+
+				for (i = 0; i <= numCharacters; i++) {
+					var newHTML = newHTML + "" + theString[i] + "";
+				}
+
+				theText.html(newHTML);
+
+				$("span").click(function(){
+					$("span").removeClass("selected"); // remove selected class from all elements
+					$(this).addClass("selected");
+					var nextSpan = $(this);
+
+					for (i = 1; i <= 10; i++) { // highlight next 10 characters
+						nextSpan = nextSpan.next();
+						nextSpan.addClass("selected");
+					}
+
+					$("#result").data("result", ""); // jQuery data chunk
+
+					$(".selected").each(function() {
+						var oldResults = $("#result").data("result");
+						var newResults = oldResults + $(this).text(); // append currently selected character
+						$("#result").data("result", newResults);
+					});
+
+					$("#result").val($("#result").data("result"));
+				});
+
+				// TODO: add keyboard shortcut event to automatically move window along
+				$("#sendit").click(function() {
+
+				});
+			});
+		</script>
+		<!--
+		Resources:
+		- https://css-tricks.com/highlight-certain-number-of-characters/
+		-->
+	</body>
+</html>
