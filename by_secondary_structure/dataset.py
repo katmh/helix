@@ -82,6 +82,7 @@ def filter(i, o):
 #filter('beta_coding.csv', 'beta_coding_filtered.csv')
 #filter('ab_coding.csv', 'ab_coding_filtered.csv')
 #filter('fewSS_coding.csv', 'fewSS_coding_filtered.csv')
+#filter('introns_final_8179.txt', 'introns_final_filtered.csv')
 
 ''' FEATURES '''
 
@@ -130,7 +131,7 @@ def disp(seq):
 
 	return statistics.median(disparities)
 
-def maxORF(seq):
+def ORF(seq): # todo: also add ORF coverage
 	ORF_lengths = []
 	for i, base in enumerate(str(seq)): # input was Seq object
 		if i < len(seq) - 2:
@@ -143,9 +144,9 @@ def maxORF(seq):
 					if (i % 3 == index % 3) and (index != -1):
 						ORF_lengths.append((index+3)-i)
 	if len(ORF_lengths) > 0:
-		return max(ORF_lengths)
+		return str(max(ORF_lengths)) + ',' + str(max(ORF_lengths)/len(seq))
 	else:
-		return 0
+		return '0,0'
 '''
 def hex(seq):
 	bases = ['A', 'T', 'C', 'G']
@@ -153,12 +154,17 @@ def hex(seq):
 
 '''
 def extractFeature(i, o, feature):
+	print('extracting ' + str(feature) + ' for ' + i)
 	with open(i) as f:
 		with open(o, 'w') as out:
 			for i, line in enumerate(f):
+				print('line ' + str(i))
 				if i != 0:
 					out.write(str(feature(Seq(line.split(',')[1].strip('"')))) + '\n')
 
+#extractFeature('data_full.csv', 'data_full_disp.csv', disp)
+#extractFeature('data_full.csv', 'data_full_GC.csv', GC)
+#extractFeature('data_full.csv', 'data_full_ORF.csv', ORF)
 #extractFeature('data.csv', 'data_disp.csv', disp)
 #extractFeature('beta_coding.csv', 'beta_coding_disp.csv', disp)
 #extractFeature('ab_coding.csv', 'ab_coding_disp.csv', disp)
@@ -169,3 +175,8 @@ def extractFeature(i, o, feature):
 #extractFeature('fewSS_coding.csv', 'fewSS_coding_GC.csv', GC)
 
 #extractFeature('data.csv', 'data_ORF.csv', maxORF)
+
+with open('data_full_ORF.csv') as f:
+	with open('data_full_ORFcover.csv', 'w') as out:
+		for line in f:
+			out.write(line.split(',')[1])

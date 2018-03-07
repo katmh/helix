@@ -37,24 +37,28 @@ def thousand(inp,o,n):
 
 # then manually shave off the ends of each so there are 1000 entries
 
-# need >6294 introns
-#thousand('introns_gbIDs_noC.txt', 'introns_gb_6294.txt', 8)
+# need >8179 introns
+thousand('introns_gbIDs_noC.txt', 'introns_gb_8179.txt', 6)
 
 def download(i,o):
+	print('downloading ' + i + ' into ' + o)
+
 	IDs = []
 	positions = []
 	with open(i) as f:
-		for line in f:
-			IDs.append(line.split(' ')[-3])
-			positions.append(line.split(' ')[-1])
+		for j, line in enumerate(f):
+			if j > 1488:
+				IDs.append(line.split(' ')[-3])
+				positions.append(line.split(' ')[-1])
 
 	Entrez.email = 'katherine_huang@student.uml.edu'
 
 	with open(o, 'w') as out:
-		for i, ID in enumerate(IDs):
+		for n, ID in enumerate(IDs):
+			print(i + ': line ' + str(n+1488))
 			handle = Entrez.efetch(db='nucleotide', id=ID, rettype='gb', retmode='text')
 			record = SeqIO.read(handle, 'genbank')
-			limits = positions[i]
+			limits = positions[n]
 			leftlim = int(limits.split('..')[0]) - 1 # bc zero indexing
 			rightlim = int(limits.split('..')[1])
 
@@ -62,7 +66,7 @@ def download(i,o):
 
 #download('exons_gb_1000.txt', 'exons_final.txt')
 #download('introns_gb_1000.txt', 'introns_final.txt')
-download('introns_gb_6294.txt', 'introns_final_6492.txt')
+download('introns_gb_8179.txt', 'introns_final_8179.txt')
 
 # custom translate function to deal w/ non-multiples of 3
 def trans(seq):

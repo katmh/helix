@@ -17,28 +17,26 @@ b$ss <- 'b'
 ab$ss <- 'ab'
 fSS$ss <- 'fSS'
 
+noncoding <- read.csv('introns_final_filtered.csv', header=FALSE)
+noncoding$ss <- ''
+noncoding$code <- 0
+colnames(noncoding) <- c('seq', 'ss', 'code')
+
 data <- rbind(a,b,ab,fSS)
 data$code <- 1
 colnames(data) <- c('seq', 'ss', 'code')
-write.csv(data, 'data.csv')
+
+data <- rbind(data,noncoding)
+write.csv(data, 'data_full.csv')
 
 # quick start
 setwd('C:/Users/Jan_Huang/Desktop/helix_grindtime/by_secondary_structure')
-data <- read.csv('data.csv')
-data <- subset(data, select=c('seq', 'length', 'code', 'disp', 'GC', 'ss', 'maxORF'))
+data <- read.csv('data_full.csv')
+data <- subset(data, select=c('seq', 'code', 'disp', 'GC', 'ss', 'maxORF', 'ORFcover'))
 data$code <- as.factor(data$code)
-
-# get sequences for beta, ab, and fewSS
-b <- read.csv('beta_coding.csv')
-ab <- read.csv('ab_coding.csv')
-fSS <- read.csv('fewSS_coding.csv')
 
 # make results reproducible
 set.seed(500)
-
-# load datasets
-coding <- read.csv('coding_final.csv')
-noncoding <- read.csv('noncoding_final.csv')
 
 # compare sequence lengths
 for (i in 1:nrow(coding)) {
@@ -65,21 +63,32 @@ coding <- subset(coding, select=c('seq', 'length'))
 coding$code <- 1
 noncoding$code <- 0
 data <- rbind(coding, noncoding)
-write.csv(data, 'data.csv')
+write.csv(data, 'data_full.csv')
 
 ### FEATURE EXTRACTION
 
 # in Python I'll calculate GC content, disparity
 # then I'll import the values here
-disp <- as.matrix(read.csv('data_disp.csv'))
+disp <- as.matrix(read.csv('data_full_disp.csv'))
 for (i in 1:nrow(disp)) {
   data$disp[i] <- disp[i]
 }
-GC <- as.matrix(read.csv('data_GC.csv'))
+GC <- as.matrix(read.csv('data_full_GC.csv'))
 for (i in 1:nrow(GC)) {
   data$GC[i] <- GC[i]
 }
-write.csv(data, 'data.csv')
+maxORF <- as.matrix(read.csv('data_full_maxORF.csv'))
+for (i in 1:nrow(maxORF)) {
+  data$maxORF[i] <- maxORF[i]
+}
+ORFcover <- as.matrix(read.csv('data_full_ORFcover.csv'))
+for (i in 1:nrow(ORFcover)) {
+  data$ORFcover[i] <- ORFcover[i]
+}
+write.csv(data, 'data_full.csv')
+
+# remove duplicate sequences
+data <- data[!duplicated(data$seq), ]
 
 b_disp <- as.matrix(read.csv('beta_coding_disp.csv'))
 for (i in 1:nrow(b_disp)) {
@@ -195,7 +204,7 @@ confusionMatrix(p_class, test[['code']])
 # spec: %73.47
 
 # train model on GC, disp, and maxORF
-model <- glm(code ~ GC + disp + maxORF, family = 'binomial', train)
+model <- glm(code ~ GC + disp + maxORF + ORFcover, family = 'binomial', train)
 p <- predict(model, test, type='response')
 summary(p)
 #    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
@@ -219,7 +228,8 @@ plot(spec, add=TRUE, col='blue')
 ### FEATURE SELECTION
 
 # remove redundant features
-(correlationMatrix <- cor(data[,4:5]))
+feature_cols <- c(3,4,6,7)
+(correlationMatrix <- cor(data[,feature_cols]))
 (highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.5))
 # disp and GC have .125 correlation
 
