@@ -153,6 +153,12 @@ def hex(seq):
 	hexamers_list = list(itertools.product(bases, repeat=6))
 
 '''
+def maxNStop(seq):
+	nTAA = seq.count('TAA')
+	nTAG = seq.count('TAG')
+	nTGA = seq.count('TGA')
+	return max(nTAA, nTAG, nTGA, 0)
+
 def extractFeature(i, o, feature):
 	print('extracting ' + str(feature) + ' for ' + i)
 	with open(i) as f:
@@ -175,8 +181,4 @@ def extractFeature(i, o, feature):
 #extractFeature('fewSS_coding.csv', 'fewSS_coding_GC.csv', GC)
 
 #extractFeature('data.csv', 'data_ORF.csv', maxORF)
-
-with open('data_full_ORF.csv') as f:
-	with open('data_full_ORFcover.csv', 'w') as out:
-		for line in f:
-			out.write(line.split(',')[1])
+extractFeature('data_full.csv', 'data_full_maxNStop.csv', maxNStop)

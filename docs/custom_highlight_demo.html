@@ -11,14 +11,15 @@
 			#result             { width: 100%; padding: 3px; margin: 10px 0; }
 		</style>
 		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E=" crossorigin="anonymous"></script>
+
 		<script>
 			$(function() {
 				var theText = $("#theText");
-				var theString = theText.text();
+				var theString = theText.html();
 				var numCharacters = theString.length;
 				var newHTML = "";
 				
-				for (i = 0; i <= numCharacters; i++) {
+				for (i = 0; i <= numCharacters; i++) { // wrap each character in span tag
 					var newHTML = newHTML + "<span>" + theString[i] + "</span>";
 				}
 				
@@ -34,7 +35,7 @@
 						nextSpan = nextSpan.next();
 						nextSpan.addClass("selected");
 					}
-					
+					/*
 					$("#result").data("result", "");
 							
 					$(".selected").each(function() {
@@ -44,14 +45,13 @@
 					});
 					
 					$("#result").val($("#result").data("result"));
+					*/
 				});
 			});
 		</script>
 	</head>
 
 	<body>	
-		<p id="theText">ATGGCTGCAGCTTCATATGATCAGTTGTTAAAGC</p>
-			
-		<textarea id="result"></textarea>
+		<p id="theText">ATGGCTGCAGCTTCATATGATCAGTTGTTAAAGC''</p>
 	</body>
 </html>
