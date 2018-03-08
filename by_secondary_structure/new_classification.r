@@ -1,8 +1,6 @@
 library(dplyr)
 library(caret)
-library(boot)
 library(ROCR)
-library(plotROC)
 library(ggplot2)
 library(plotly)
 library(corrplot)
@@ -142,47 +140,151 @@ test <- data[-train_indices_all,]
 write.csv(train, 'data_train_proportional.csv')
 write.csv(test, 'data_test_proportional.csv')
 
+### ROC CURVE
+
+# control: plot sensitivity and specificity vs probability threshold
+# upon inspection, optimal cutoff <.5
+control_pred <- prediction(control_p, test$code)
+control_sens <- performance(control_pred, measure='sens', x.measure='cutoff') # true positive rate
+control_spec <- performance(control_pred, measure='spec', x.measure='cutoff') # true negative rate
+plot(control_sens, main='Control Model: Sensitivity and Specificity vs Cutoff', col='red', ylab='Sensitivity/Specificity')
+plot(control_spec, add=TRUE, col='blue')
+
+# optimal probability threshold via largest sum
+control_best.sum <- which.max(control_sens@y.values[[1]]+control_spec@y.values[[1]])
+control_sens@x.values[[1]][control_best.sum] # 41.76
+
+# optimal probability threshold via closest intersection
+control_both.eq <- which.min(abs(control_sens@y.values[[1]]-control_spec@y.values[[1]]))
+control_sens@x.values[[1]][control_both.eq] # 45.87
+
+# experimental: plot sensitivity and specificity vs probability threshold
+# upon inspection, optimal cutoff <.5
+exp_pred <- prediction(exp_p, test$code)
+exp_sens <- performance(exp_pred, measure='sens', x.measure='cutoff') # true positive rate
+exp_spec <- performance(exp_pred, measure='spec', x.measure='cutoff') # true negative rate
+plot(exp_sens, main='Experimental Model: Sensitivity and Specificity vs Cutoff', col='red', ylab='Sensitivity/Specificity')
+plot(exp_spec, add=TRUE, col='blue')
+
+# optimal probability threshold via largest sum
+exp_best.sum <- which.max(exp_sens@y.values[[1]]+exp_spec@y.values[[1]])
+exp_sens@x.values[[1]][exp_best.sum] # 39.65
+
+# optimal probability threshold via closest intersection
+exp_both.eq <- which.min(abs(exp_sens@y.values[[1]]-exp_spec@y.values[[1]]))
+exp_sens@x.values[[1]][exp_both.eq] # 46.99
+
 ### LOGISTIC REGRESSION
+
+# I'll use cutoffs optimized by largest sum
 
 # control: standard features only (i.e. no disparity)
 control_model <- glm(code ~ GC + maxORF + ORFcover + maxnstop, family = 'binomial', train)
 control_p <- predict(control_model, test, type = 'response')
-summary(control_p)
-#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#0.0011  0.3177  0.4587  0.5026  0.6838  1.0000
-control_p_class <- ifelse(control_p > .50, 1, 0)
+control_p_class <- ifelse(control_p > .4176, 1, 0)
 confusionMatrix(control_p_class, test[['code']])
+### USING .50 CUTOFF:
 #          Reference
 #Prediction   0   1
 #         0 845 400
 #         1 281 727
 # Accuracy: 69.77
+# Kappa: 39.55
 # Sensitivity: 75.04
 # Specificity: 64.51
+### USING OPTIMIZED (LARGEST SUM) 41.76 CUTOFF:
+#          Reference
+#Prediction   0   1
+#         0 727 255
+#         1 399 872
+# Accuracy: 70.97
+# Kappa: 41.94
+# Sensitivity: 64.56
+# Specificity: 77.37
+### USING OPTIMIZED (CLOSEST INTERSECTION) 45.87 CUTOFF:
+#          Reference
+#Prediction   0   1
+#         0 785 341
+#         1 341 786
+# Accuracy: 69.73
+# Kappa: 39.46
+# Sensitivity: 69.72
+# Specificity: 69.74
 
 # experimental: standard features + disparity
 exp_model <- glm(code ~ GC + maxORF + ORFcover + maxnstop + disp, family = 'binomial', train)
 exp_p <- predict(exp_model, test, type = 'response')
-summary(exp_p)
-#     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#0.0002476 0.2365053 0.4744746 0.5055679 0.7822746 1.0000000
-exp_p_class <- ifelse(exp_p > .50, 1, 0)
+exp_p_class <- ifelse(exp_p > .3965, 1, 0)
 confusionMatrix(exp_p_class, test[['code']])
+### USING .50 CUTOFF:
 #          Reference
 #Prediction   0   1
 #         0 920 255
 #         1 206 872
 # Accuracy: 79.54
+# Kappa: 54.64
 # Sensitivity: 81.71
 # Specificity: 77.37
+### USING OPTIMIZED (LARGEST SUM) 39.65 CUTOFF:
+#          Reference
+#Prediction   0   1
+#         0 814 187
+#         1 312 940
+# Accuracy: 77.85
+# Kappa: 55.70
+# Sensitivity: 72.29
+# Specificity: 83.41
+### USING OPTIMIZED (CLOSEST INTERSECTION) 41.76 CUTOFF:
+#          Reference
+#Prediction   0   1
+#         0 829 213
+#         1 297 914
+# Accuracy: 77.36
+# Kappa: 54.73
+# Sensitivity: 73.62
+# Specificity: 81.10
 
-### ROC CURVE
-control_pred <- prediction(control_p, test$code)
-control_sens <- performance(control_pred, measure='sens', x.measure='cutoff') # true positive rate
-control_spec <- performance(control_pred, measure='spec', x.measure='cutoff') # true negative rate
-plot(control_sens, main='Sensitivity and Specificity vs Cutoff', col='red', ylab='Sensitivity/Specificity')
-plot(control_spec, add=TRUE, col='blue')
-# work out geom_roc later
+### RANDOM NOISE
+# if any features are less important than the random noise variable, they are insignificant
+
+# generate random numbers
+randnums <- sample(x=1:nrow(data), size=nrow(data))
+for (i in 1:nrow(train)) {
+  train$randnum[i] <- randnums[i]
+}
+for (i in 1:nrow(test)) {
+  test$randnum[i] <- randnums[i+nrow(train)]
+}
+
+# train model
+noise_model <- glm(code ~ GC + maxORF + ORFcover + maxnstop + disp + randnum, family = 'binomial', data=train)
+noise_p <- predict(noise_model, test, type = 'response')
+
+# optimize cutoff
+noise_pred <- prediction(noise_p, test$code)
+noise_sens <- performance(noise_pred, measure='sens', x.measure='cutoff') # true positive rate
+noise_spec <- performance(noise_pred, measure='spec', x.measure='cutoff') # true negative rate
+noise_best.sum <- which.max(noise_sens@y.values[[1]]+noise_spec@y.values[[1]])
+noise_sens@x.values[[1]][exp_best.sum] # 39.93
+
+# test model
+noise_p_class <- ifelse(noise_p > .3993, 1, 0)
+confusionMatrix(noise_p_class, test[['code']])
+#          Reference
+#Prediction   0   1
+#         0 816 187
+#         1 310 940
+# Accuracy: 77.94
+# Kappa: 55.88
+# Sensitivity: 72.47
+# Specificity: 83.41
+(noise_varImp <- varImp(noise_model, scale=FALSE))
+#GC       14.3785158
+#maxORF   18.3890397
+#ORFcover 14.7707025
+#maxnstop 11.0902717
+#disp     27.9960533
+#randnum   0.3756356
 
 ### RANK FEATURES BY IMPORTANCE
 # if feature less important than random noise, then it's not significant
@@ -203,27 +305,27 @@ plot(control_spec, add=TRUE, col='blue')
 # 10-fold cV on control, using Bayes GLM
 (control_cv <- train(
   code ~ GC + maxORF + ORFcover + maxnstop, data,
-  method = 'bayesglm',
+  method = 'glm',
   trControl = trainControl(
     method = 'cv', number = 10,
     verboseIter = TRUE
   )
 ))
-# accuracy: 70.52
-# kappa: 41.04 - borderline poor
+# accuracy: 70.46
+# kappa: 40.92 - borderline poor
 # Kappa = (observed accuracy - expected accuracy)/(1 - expected accuracy)
 
 # 10-fold cV on control, using Bayes GLM
 (exp_cv <- train(
   code ~ GC + maxORF + ORFcover + maxnstop + disp, data,
-  method = 'bayesglm',
+  method = 'glm',
   trControl = trainControl(
     method = 'cv', number = 10,
     verboseIter = TRUE
   )
 ))
-# accuracy: 79.00
-# kappa: 58.01 - moderate/good
+# accuracy: 78.96
+# kappa: 57.92 - moderate/good
 
 ### ANOVA
 # all features add significant improvement to the model
