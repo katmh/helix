@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
+		<title>Disparity Calculation</title>
 		<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
 		<link href="https://fonts.googleapis.com/css?family=Karla:400,700" rel="stylesheet">
 		<style>
@@ -25,7 +26,14 @@
 				border-bottom: 1px solid #aaa;
 				padding: .5rem;
 				width: 90%;
-				margin-bottom: 2rem;
+				margin-bottom: .5rem;
+			}
+
+			.small, .tooltip, .tooltiptext {
+				font: 1.25rem Karla, Arial, sans-serif;
+			}
+			.small {
+				margin-bottom: 1.5rem;
 			}
 
 			.container {
@@ -39,9 +47,8 @@
 				background: #bada55;
 				border-radius: 50px;
 				text-align: center;
-				padding-top: .75rem;
+				padding-top: .7rem;
 				position: absolute;
-				font: bold 2.85rem Karla, Arial, sans-serif;
 				color: #fff;
 				text-shadow: 0.5px 0.5px 2.5px #000;
 			}
@@ -93,6 +100,35 @@
 			#x-vectors, #y-vectors {
 				color: #444;
 			}
+
+			.tooltip {
+				position: relative;
+				display: inline-block;
+				border-bottom: 1px dotted black;
+			}
+			.tooltip .tooltiptext {
+				visibility: hidden;
+				opacity: 0;
+				width: auto;
+				background-color: black;
+				color: #fff;
+				text-align: center;
+				padding: 5px 7.5px;
+				border-radius: 6px;
+
+				position: absolute;
+				z-index: 1;
+
+				transition: .25s;
+			}
+			.tooltip:hover .tooltiptext {
+				visibility: visible;
+				opacity: 1;
+			}
+
+			#wheel .tooltip {
+				font: bold 2.85rem Karla, Arial, sans-serif;
+			}
 		</style>
 	</head>
 
@@ -100,6 +136,7 @@
 		<div class="container">
 			<section class="five" style="position: relative;">
 				<input type="text" id="seq-input" placeholder="Type your protein sequence">
+				<p class="small">Examples: <span class="tooltip">Amphipathic <span class="tooltiptext">RILIFLLEFLLDCTGEVDKKRQ</span></span>, <span class="tooltip">Hydrophobic <span class="tooltiptext">DLVLTVLIALAVYFLGRL</span></span>, <span class="tooltip">Hydrophilic  <span class="tooltiptext">KLPGKSGRTWREADVNYTS</span></span></p>
 				<h3>Helical Wheel</h3>
 				<div id="wheel"></div>
 			</section>
@@ -122,7 +159,7 @@
 
 			<section class="three">
 				<h3>Hydropathy Scale</h3>
-				<p class="sub">(Kyte & Doolittle, 1982)</p>
+				<p class="sub">(Kyte & Doolittle, 1982)<br>Hydrophobic to Hydrophilic</p>
 				<table id="table">
 				<tr>
 					<th>I</th>
@@ -231,7 +268,7 @@
 			var seq = ''
 
 			var hydropathy = {};
-				hydropathy['I'] = 4.5;
+				hydropathy['I'] = 4.5; // hydrophobic; /should be red
 				hydropathy['V'] = 4.2;
 				hydropathy['L'] = 3.8;
 				hydropathy['F'] = 2.8;
@@ -250,7 +287,7 @@
 				hydropathy['N'] = -3.5;
 				hydropathy['Q'] = -3.5;
 				hydropathy['K'] = -3.9;
-				hydropathy['R'] = -4.5;
+				hydropathy['R'] = -4.5; // hydrophilic; should be blue
 
 			var radialLineGenerator = d3.radialLine();
 			var sequentialScale = d3.scaleSequential()
@@ -261,10 +298,11 @@
 			var tableRows = document.getElementsByTagName('tr');
 			for (i = 0; i < tableRows.length; i++) {
 				residue = tableRows[i]['cells'][0]['innerText'];
-				color = sequentialScale(hydropathy[residue])
+				color = sequentialScale(-hydropathy[residue]); // opposite
 				tableRows[i].style.borderBottom = '5px solid ' + color;
-				console.log('done' + i);
 			}
+
+			const reducer = (accumulator, currentValue) => accumulator + currentValue;
 
 			seqInput.onkeyup = keyup;
 			function keyup(e) {
@@ -321,9 +359,10 @@
 						.attr("class", "circle-node")
 						.attr("style", function(d) {return d;})
 						.style("background", function(d,i) {
-							return sequentialScale(hydropathy[seq[i]]);
+							return sequentialScale(-hydropathy[seq[i]]); // opposite
 						})
-						.text(function(d,i) { return seq[i]; });
+						.html(function(d,i) { return '<span class="tooltip">' + seq[i] + '<span class="tooltiptext">' + i + '</span></span>'; });
+						//.text(function(d,i) { return '<span class="tooltip">' + seq[i] + '<span class="tooltiptext">' + i + '</span></span>'; });
 
 				Xproducts = [];
 				Yproducts = [];
@@ -343,6 +382,28 @@
 					.data(myData)
 					.enter().append('p')
 						.text(function(d,i) { return hydropathy[seq[i]] + ' × sin(' + i + ' × 100°) = ' + String(Yproducts[i]).substr(0,4) });
+
+				if (seq.length >= 15) {
+					// if seq.length == 15: 1 disparity
+					// if seq.length == 16: 2 disparities
+					// if seq.length == 17: 3 disparities
+					// # disparities = seq.length - 14
+
+					console.log(seq.length);
+
+					// do this for every disparity value calculation
+					for (i = 0; i < seq.length - 14; i++) {
+						X = Xproducts.splice(i,15+i).reduce(reducer);
+						Y = Yproducts.splice(i,15+i).reduce(reducer);
+						console.log(i + ': ' + X);
+						console.log(i + ': ' + Y);
+						mag = Math.sqrt( Math.pow(X, 2) + Math.pow(Y, 2) );
+						console.log(i + ': ' + mag);
+						console.log(i + 'disp : ' + mag/15);
+
+						//console.log(i + ': ' + (mag/15) );
+					}
+				}
 			}
 		</script>
 	</body>
