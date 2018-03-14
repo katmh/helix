@@ -32,9 +32,6 @@
 			.small, .tooltip, .tooltiptext {
 				font: 1.25rem Karla, Arial, sans-serif;
 			}
-			.small {
-				margin-bottom: 1.5rem;
-			}
 
 			.container {
 				text-align: center;
@@ -70,7 +67,7 @@
 			}
 
 			p {
-				font: 1.5rem Karla, Arial, sans-serif;
+				font: 1.4rem Karla, Arial, sans-serif;
 				margin: .25rem 0;
 			}
 
@@ -99,6 +96,7 @@
 
 			#x-vectors, #y-vectors {
 				color: #444;
+				transition: .25s;
 			}
 
 			.tooltip {
@@ -129,6 +127,32 @@
 			#wheel .tooltip {
 				font: bold 2.85rem Karla, Arial, sans-serif;
 			}
+
+			ol {
+				list-style: none;
+				font: bold 1.75rem Karla, Arial, sans-serif;
+				margin-top: .75rem;
+			}
+
+			li {
+				margin: .5rem 0;
+			}
+
+			.show {
+				opacity: 1;
+				height: auto;
+			}
+
+			#hide {
+				font-size: 1rem;
+				color: #222;
+			}
+
+			.hidden {
+				opacity: 0;
+				height: 0;
+				display: none;
+			}
 		</style>
 	</head>
 
@@ -137,23 +161,26 @@
 			<section class="five" style="position: relative;">
 				<input type="text" id="seq-input" placeholder="Type your protein sequence">
 				<p class="small">Examples: <span class="tooltip">Amphipathic <span class="tooltiptext">RILIFLLEFLLDCTGEVDKKRQ</span></span>, <span class="tooltip">Hydrophobic <span class="tooltiptext">DLVLTVLIALAVYFLGRL</span></span>, <span class="tooltip">Hydrophilic  <span class="tooltiptext">KLPGKSGRTWREADVNYTS</span></span></p>
+				<br>
 				<h3>Helical Wheel</h3>
 				<div id="wheel"></div>
 			</section>
 
 			<section class="four">
 				<h3>Disparity Calculation</h3>
-				<p class="sub">Window Size: 15</p>
+				<p class="sub">Window Size: 15, Sequence Length: <span id="seq-length">0</span></p>
 				<div id="x" class="half">
 					<img src="img/disparityX.png" alt="">
-					<div id="x-vectors"></div>
+					<div id="x-vectors" class="show"></div>
 				</div>
 				<div id="y" class="half">
 					<img src="img/disparityY.png" alt="">
-					<div id="y-vectors"></div>
+					<div id="y-vectors" class="show"></div>
 				</div>
+				<p><a href="#" id="toggle" class="hidden">Hide</a></p>
 				<div id="magnitude">
 					<img src="img/disparitymagnitude.png" alt="">
+					<ol id="disparity-list"></ol>
 				</div>
 			</section>
 
@@ -303,16 +330,42 @@
 			}
 
 			const reducer = (accumulator, currentValue) => accumulator + currentValue;
+			var disparity = document.getElementById('disparity-list');
+
+			var seqLength = document.getElementById('seq-length');
+			var toggleButton = document.getElementById('toggle');
+
+			toggleButton.addEventListener('click', toggleXY);
+			function toggleXY() {
+				X = document.getElementById('x-vectors');
+				if (X.className == 'show') {
+					X.className = 'hidden';
+					document.getElementById('y-vectors').className = 'hidden';
+					toggleButton.innerHTML = 'Show';
+				} else if (X.className == 'hidden') {
+					X.className = 'show';
+					document.getElementById('y-vectors').className = 'show';
+				}
+			}
 
 			seqInput.onkeyup = keyup;
 			function keyup(e) {
-				seq = e.target.value.toUpperCase();
-
 				// reset things with every keyup
 				d3.select('#wheel').selectAll('*').remove();
 				d3.select('#x-vectors').selectAll('*').remove();
 				d3.select('#y-vectors').selectAll('*').remove();
+				disparity.innerHTML = '';
+				seqLength.innerHTML = '0';
+				toggleButton.className = 'hidden';
 				var points = [];
+
+				seq = e.target.value.toUpperCase();
+
+				seqLength.innerHTML = seq.length;
+
+				if (seq.length > 0) {
+					toggleButton.className = 'show';
+				}
 
 				// regenerate radial points
 				var radius = 400;
@@ -376,11 +429,13 @@
 					.selectAll('p')
 					.data(myData)
 					.enter().append('p')
+						.attr('class', 'small')
 						.text(function(d,i) { return hydropathy[seq[i]] + ' × cos(' + i + ' × 100°) = ' + String(Xproducts[i]).substr(0,4) });
 				d3.select('#y-vectors')
 					.selectAll('p')
 					.data(myData)
 					.enter().append('p')
+						.attr('class', 'small')
 						.text(function(d,i) { return hydropathy[seq[i]] + ' × sin(' + i + ' × 100°) = ' + String(Yproducts[i]).substr(0,4) });
 
 				if (seq.length >= 15) {
@@ -389,19 +444,16 @@
 					// if seq.length == 17: 3 disparities
 					// # disparities = seq.length - 14
 
-					console.log(seq.length);
-
 					// do this for every disparity value calculation
 					for (i = 0; i < seq.length - 14; i++) {
-						X = Xproducts.splice(i,15+i).reduce(reducer);
-						Y = Yproducts.splice(i,15+i).reduce(reducer);
-						console.log(i + ': ' + X);
-						console.log(i + ': ' + Y);
-						mag = Math.sqrt( Math.pow(X, 2) + Math.pow(Y, 2) );
-						console.log(i + ': ' + mag);
-						console.log(i + 'disp : ' + mag/15);
 
-						//console.log(i + ': ' + (mag/15) );
+						X = Xproducts.slice(i,15+i).reduce(reducer);
+						Y = Yproducts.slice(i,15+i).reduce(reducer);
+						mag = Math.sqrt( Math.pow(X, 2) + Math.pow(Y, 2) );
+
+						listnode = document.createElement('li'); // create new li
+						listnode.innerHTML = 'D<sub>' + String(i+1) + '</sub>: ' + String(mag/15).substr(0,4); // add HTML to li
+						disparity.appendChild(listnode); // add li to already created disparity-list					
 					}
 				}
 			}
