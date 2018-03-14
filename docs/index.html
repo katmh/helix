@@ -1,10 +1,7 @@
-<DOCTYPE HTML>
+<!DOCTYPE HTML>
 <html>
 	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>Discovering Protein-Coding Genes Through Hydropathy Disparity</title>
-		<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
 		<style>
 			* {
 				margin: 0;
@@ -12,14 +9,173 @@
 				-webkit-box-sizing: border-box;
 				-moz-box-sizing: border-box;
 				box-sizing: border-box;
-				font-family: Source Sans Pro, Arial, sans-serif;
+			}
+
+			header {
+				text-align: center;
+			}
+
+			#seq-input {
+				font: 4rem Inconsolata, Courier New, monospace;
+				text-transform: uppercase;
+				letter-spacing: 5px;
+				outline: none;
+				border: none;
+				border-bottom: 1px solid #aaa;
+				padding: .5rem;
+				width: 80%;
+				margin: 2.5rem auto;
+			}
+
+			path {
+				fill: none;
+				stroke: #999;
+			}
+
+			.circle-node {
+				width: 75px;
+				height: 75px;
+				background: #bada55;
+				border-radius: 50px;
+				text-align: center;
+				padding-top: .75rem;
+				position: absolute;
+				font: bold 2.85rem Arial, sans-serif;
+				color: #fff;
+				text-shadow: 0.5px 0.5px 2.5px #000;
+			}
+
+			#wheel {
+				width: 960px;
+				height: 600px;
+				margin: 2.5rem auto;
+				position: relative;
 			}
 		</style>
 	</head>
 
 	<body>
 		<header>
-			<h1>Discovering Protein-Coding Genes Through Hydropathy Disparity</h1>
+			<input type="text" id="seq-input" placeholder="Type your protein sequence">
 		</header>
+
+		<section id="wheel"></section>
+
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+		<script>
+			/* sequence input */
+			var seqInput = document.getElementById('seq-input');
+			var seqOutput = document.getElementById('seq-output');
+			seqInput.onkeyup = keyup;
+			var seq = ''
+
+			var radialLineGenerator = d3.radialLine();
+
+			var hydropathy = {};
+				hydropathy['I'] = 4.5;
+				hydropathy['V'] = 4.2;
+				hydropathy['L'] = 3.8;
+				hydropathy['F'] = 2.8;
+				hydropathy['C'] = 2.5;
+				hydropathy['M'] = 1.9;
+				hydropathy['A'] = 1.8;
+				hydropathy['G'] = -0.4;
+				hydropathy['T'] = -0.7;
+				hydropathy['S'] = -0.8;
+				hydropathy['W'] = -0.9;
+				hydropathy['Y'] = -1.3;
+				hydropathy['P'] = -1.6;
+				hydropathy['H'] = -3.2;
+				hydropathy['E'] = -3.5;
+				hydropathy['D'] = -3.5;
+				hydropathy['N'] = -3.5;
+				hydropathy['Q'] = -3.5;
+				hydropathy['K'] = -3.9;
+				hydropathy['R'] = -4.5;
+
+			var sequentialScale = d3.scaleSequential()
+				.domain([-4.5, 4.5])
+				.interpolator(d3.interpolateRdBu);
+
+			function keyup(e) {
+				seq = e.target.value.toUpperCase();
+
+				// reset things with every keyup
+				d3.select('section').selectAll('*').remove();
+				var points = [];
+
+				// regenerate radial points
+				var radius = 400;
+				for (i = 0; i < seq.length; i++) {
+					points.push([Math.PI * (i*100/180) , radius]);
+				}
+				var radialLine = radialLineGenerator(points);
+
+				// recalculate positions of nodes
+				var myData = [];
+				myData.push('left: ' + 280 + 'px; bottom: ' + 20 + 'px;');
+
+				for (i = 0; i < radialLine.split('L').length; i++) {
+					var styles = '';
+					if (i != 0) { // skip M 0,0 command
+						prevX = myData[i-1].split(';')[0].split(':')[1].substring(1);
+						prevX = prevX.substring(0, prevX.indexOf('px')); // remove 'px'
+
+						prevY = myData[i-1].split(';')[1].split(':')[1].substring(1)
+						prevY = prevY.substring(0, prevY.indexOf('px')) // remove 'px'
+
+						dx = radialLine.split('L')[i].split(',')[0]
+						dy = radialLine.split('L')[i].split(',')[1]
+
+						// values from path are relative to previous one
+						// add current value to previous value
+						newX = Number(prevX) + Number(dx)
+						newY = Number(prevY) + Number(dy)
+
+						styles = 'left: ';
+						styles += newX + 'px;';
+						styles += ' bottom: ';
+						styles += newY + 'px;';
+					}
+					if (styles != '') {
+						myData.push(styles);
+					}
+				}
+
+				d3.select("section")
+					.selectAll("p")
+					.data(myData)
+					.enter().append("p")
+						.attr("class", "circle-node")
+						.attr("style", function(d) {return d;})
+						.style("background", function(d,i) {
+							return sequentialScale(hydropathy[seq[i]]);
+						})
+						.text(function(d,i) { return seq[i]; });
+			}
+
+
+
+			/*
+
+			// increase magnitude of dx and dy so nodes don't overlap
+						increment = i;
+						threshold = 325;
+
+						if (newX > threshold) {
+							newX += increment;
+						} else if (newX < threshold) {
+							newX -= increment;
+						}
+
+						if (newY > threshold) {
+							newY += increment;
+						} else if (newY < threshold) {
+							newX -= increment;
+						}
+
+			*/
+		</script>
 	</body>
 </html>

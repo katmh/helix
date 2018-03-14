@@ -95,6 +95,12 @@ fligner.test(data[data$code=='1',]$disp, data[data$code=='0',]$disp) # p=.492, v
 wilcox.test(data[data$code=='1',]$GC, data[data$code=='0',]$GC) # p=9.46e-14
 wilcox.test(data[data$code=='1',]$disp, data[data$code=='0',]$disp) # p=2.2e-16
 # conclusion: from diff distributions
+a_b <- wilcox.test(data[data$ss=='a',]$disp, data[data$ss=='b',]$disp) # 3.460092e-76
+a_ab <- wilcox.test(data[data$ss=='a',]$disp, data[data$ss=='ab',]$disp) # 3.979192e-05
+a_fSS <- wilcox.test(data[data$ss=='a',]$disp, data[data$ss=='fSS',]$disp) # 0.1143285 accept null!
+b_ab <- wilcox.test(data[data$ss=='b',]$disp, data[data$ss=='ab',]$disp) # 4.563859e-58
+b_fSS <- wilcox.test(data[data$ss=='b',]$disp, data[data$ss=='fSS',]$disp) # 1.117752e-05
+ab_fSS <- wilcox.test(data[data$ss=='ab',]$disp, data[data$ss=='fSS',]$disp) # 0.5295886 accept null!
 
 ggplot(data=data, aes(data$disp, fill=code)) + geom_histogram(binwidth = .05) + labs(title='Histogram of Median Disparity', x='Median Disparity', y='Count') + scale_fill_discrete(name = '', labels = c('Noncoding', 'Coding'))
 
@@ -140,7 +146,7 @@ test <- data[-train_indices_all,]
 write.csv(train, 'data_train_proportional.csv')
 write.csv(test, 'data_test_proportional.csv')
 
-### ROC CURVE
+### CUTOFF OPTIMIZATION
 
 # control: plot sensitivity and specificity vs probability threshold
 # upon inspection, optimal cutoff <.5
@@ -149,6 +155,8 @@ control_sens <- performance(control_pred, measure='sens', x.measure='cutoff') # 
 control_spec <- performance(control_pred, measure='spec', x.measure='cutoff') # true negative rate
 plot(control_sens, main='Control Model: Sensitivity and Specificity vs Cutoff', col='red', ylab='Sensitivity/Specificity')
 plot(control_spec, add=TRUE, col='blue')
+legend(.015, .85, legend=c("Sensitivity", "Specificity"),
+       col=c("red", "blue"), lty=1:1, text.font=1)
 
 # optimal probability threshold via largest sum
 control_best.sum <- which.max(control_sens@y.values[[1]]+control_spec@y.values[[1]])
@@ -180,6 +188,7 @@ exp_sens@x.values[[1]][exp_both.eq] # 46.99
 
 # control: standard features only (i.e. no disparity)
 control_model <- glm(code ~ GC + maxORF + ORFcover + maxnstop, family = 'binomial', train)
+summary(control_model) # AIC: 7644.6
 control_p <- predict(control_model, test, type = 'response')
 control_p_class <- ifelse(control_p > .4176, 1, 0)
 confusionMatrix(control_p_class, test[['code']])
@@ -213,6 +222,7 @@ confusionMatrix(control_p_class, test[['code']])
 
 # experimental: standard features + disparity
 exp_model <- glm(code ~ GC + maxORF + ORFcover + maxnstop + disp, family = 'binomial', train)
+summary(exp_model) # AIC: 6493.5
 exp_p <- predict(exp_model, test, type = 'response')
 exp_p_class <- ifelse(exp_p > .3965, 1, 0)
 confusionMatrix(exp_p_class, test[['code']])
@@ -243,6 +253,72 @@ confusionMatrix(exp_p_class, test[['code']])
 # Kappa: 54.73
 # Sensitivity: 73.62
 # Specificity: 81.10
+
+results <- c('Control', 'Experimental')
+results <- as.data.frame(results)
+results$accuracy <- c(70.97, 77.85)
+
+### TEST BY SEC STRUC
+
+# a proportion: 0.361517976
+test_a <- test[test$ss=='a', ] # 407 alpha, 407 nc
+nc_indices_407 <- sample(x = as.vector(which(test$code==0)), size = 407)
+test_a <- rbind(test_a, test[nc_indes_407, ])
+control_p_a <- predict(control_model, test_a, type = 'response')
+control_p_class_a <- ifelse(control_p_a > .4176, 1, 0)
+confusionMatrix(control_p_class_a, test_a[['code']])
+# Accuracy: 70.02, Sens: 66.83, Spec: 73.22
+# NIR: 0.5, P-Value (Acc>NIR): <2e-16
+exp_p_a <- predict(exp_model, test_a, type = 'response')
+exp_p_class_a <- ifelse(exp_p_a > .3965, 1, 0)
+confusionMatrix(exp_p_class_a, test_a[['code']])
+# Accuracy: 78.75, Sens: 72.73, Spec: 84.77
+# NIR: 0.5, P-Value (Acc>NIR): <2.2-16
+
+# redo these bc they're messy and small mistakes were made lol
+test_b <- test[test$ss=='b', ] # 323 alpha, 323 nc
+nc_indices_323 <- sample(x = as.vector(which(test$code==0)), size = 323)
+test_b <- rbind(test_b, test[nc_indices_323, ])
+control_p_b <- predict(control_model, test_b, type = 'response')
+control_p_class_b <- ifelse(control_p_b > .4176, 1, 0)
+confusionMatrix(control_p_class_b, test_b[['code']])
+# Accuracy: 74.3, Sens: 67.95, Spec: 73.22
+# NIR: 0.642, P-Value (Acc>NIR): 3.500e-05
+exp_p_b <- predict(exp_model, test_b, type = 'response')
+exp_p_class_b <- ifelse(exp_p_b > .3965, 1, 0)
+confusionMatrix(exp_p_class_b, test_b[['code']])
+# Accuracy: 78.01, Sens: 74.25, Spec: 84.77
+# NIR: .642, P-Value (Acc>NIR): <2.2e-16
+
+test_ab <- test[test$ss=='ab', ] # 379 alpha, 379 nc
+nc_indices_379 <- sample(x = as.vector(which(test$code==0)), size = 379)
+test_b <- rbind(test_a, test[nc_indices_379, ])
+control_p_b <- predict(control_model, test_b, type = 'response')
+control_p_class_b <- ifelse(control_p_b > .4176, 1, 0)
+confusionMatrix(control_p_class_b, test_b[['code']])
+# Accuracy: 69.83, Sens: 67.95, Spec: 73.22
+# NIR: 0.642, P-Value (Acc>NIR): 3.500e-05
+exp_p_b <- predict(exp_model, test_b, type = 'response')
+exp_p_class_b <- ifelse(exp_p_b > .3965, 1, 0)
+confusionMatrix(exp_p_class_b, test_b[['code']])
+# Accuracy: 78.01, Sens: 74.25, Spec: 84.77
+# NIR: .642, P-Value (Acc>NIR): <2.2e-16
+
+### ROC CURVES
+control_roc <- performance(control_pred, measure = 'tpr', x.measure = 'fpr')
+plot(control_roc, main='Control: ROC Curve')
+abline(a=0,b=1)
+control_auc <- performance(control_pred, measure = 'auc')
+control_auc@y.values # 0.7895
+
+exp_roc <- performance(exp_pred, measure = 'tpr', x.measure = 'fpr')
+plot(exp_roc, main='ROC Curve', col = 'red')
+plot(add = TRUE, control_roc, col = 'blue')
+abline(a=0,b=1)
+legend(0.35, .2, legend=c("Control (AUROC: 0.7895)", "Experimental (AUROC: 0.8605)"),
+       col=c("blue", "red"), lty=1:1, cex=0.8)
+exp_auc <- performance(exp_pred, measure = 'auc')
+exp_auc@y.values # 0.8605
 
 ### RANDOM NOISE
 # if any features are less important than the random noise variable, they are insignificant
@@ -294,12 +370,30 @@ confusionMatrix(noise_p_class, test[['code']])
 #maxORF   18.14501
 #ORFcover 17.09556
 #maxnstop 12.15270
+control_varImp <- as.data.frame(control_varImp$Overall)
+control_varImp$Feature <- c('GC Percentage', 'Maximum ORF Length', 'ORF Coverage', 'Maximum Occurrences of Stop Codons')
+colnames(control_varImp) <- c('Importance', 'Feature')
+ggplot(control_varImp, aes(x = reorder(Feature, -Importance), y = Importance, fill = Feature)) +
+  geom_col() +
+  scale_x_discrete(labels = function(x) lapply(strwrap(x, width = 17.5, simplify = FALSE), paste, collapse="\n")) +
+  scale_y_continuous(limits=c(0,30)) +
+  labs(x = 'Feature') +
+  geom_text(aes(label=substr(as.character(Importance),1,5)), position=position_dodge(width=0.9), vjust=-1)
 (exp_varImp <- varImp(exp_model, scale=FALSE))
 #GC       14.37687
 #maxORF   18.38776
 #ORFcover 14.77688
 #maxnstop 11.09030
 #disp     27.99592
+exp_varImp <- as.data.frame(exp_varImp$Overall)
+exp_varImp$Feature <- c('GC Percentage', 'Maximum ORF Length', 'ORF Coverage', 'Maximum Occurrences of Stop Codons', 'Median Disparity')
+colnames(exp_varImp) <- c('Importance', 'Feature')
+ggplot(exp_varImp, aes(x = reorder(Feature, -Importance), y = Importance, fill = Feature)) +
+  geom_col() +
+  scale_x_discrete(labels = function(x) lapply(strwrap(x, width = 15, simplify = FALSE), paste, collapse="\n")) +
+  scale_y_continuous(limits=c(0,30)) +
+  labs(x = 'Feature') +
+  geom_text(aes(label=substr(as.character(Importance),1,5)), position=position_dodge(width=0.9), vjust=-1)
 
 ### CROSS VALIDATION
 # 10-fold cV on control, using Bayes GLM
@@ -329,3 +423,17 @@ confusionMatrix(noise_p_class, test[['code']])
 
 ### ANOVA
 # all features add significant improvement to the model
+two_anova <- anova(control_model, exp_model, test = 'Chisq')
+two_anova$`Pr(>Chi)` # 3.894958e-254
+
+control_anova <- anova(control_model, test = 'Chisq')
+control_anova$`Pr(>Chi)` # GC: 6.671715e-91, maxORF: 4.640148e-155, ORFcover: 1.872042e-85, maxnstop: 3.062351e-48
+
+exp_anova <- anova(exp_model, test = 'Chisq')
+exp_anova$`Pr(>Chi)` # GC: 6.671715e-91, maxORF: 4.640148e-155, ORFcover: 1.872042e-85, maxnstop: 3.062351e-48, disp: 3.894958e-254
+
+mean(data[data$ss=='a',]$disp) # .730
+mean(data[data$ss=='b',]$disp) # .658
+mean(data[data$ss=='ab',]$disp) # .707
+mean(data[data$ss=='fSS',]$disp) # .712
+mean(data[data$code==0,]$disp) # .615

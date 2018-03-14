@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<style>
+			* {
+				-webkit-box-sizing: border-box;
+				-moz-box-sizing: border-box;
+				box-sizing: border-box;
+			}
+
+			.chart {
+				fill: none;
+			}
+
+			.circle {
+				width: 50px;
+				height: 50px;
+				background: #bada55;
+				border-radius: 50px;
+				text-align: center;
+				padding-top: 1rem;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="circle">hi</div>
+
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script>
+			myData = [
+				{value: 10, angle: 1*45, radius: 1*20},
+				{value: 41, angle: 2*45, radius: 2*20},
+				{value: 15, angle: 3*45, radius: 3*20},
+				{value: 16, angle: 4*45, radius: 4*20},
+				{value: 23, angle: 5*45, radius: 5*20}
+			];
+
+			d3.select("body")
+			  .selectAll("p")
+			  .data(myData)
+			  .enter().append("p")
+			  	.attr("class", "circle")
+			  	.attr("style", function(d) {return "margin-left:"+d.radius+"px";})
+			    .text(function(d) { return "I’m number " + (d.value) + "!"; });
+		</script>
+	</body>
+</html>
